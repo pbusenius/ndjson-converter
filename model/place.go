@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 type Place struct {
@@ -16,10 +17,12 @@ type Place struct {
 
 func (p Place) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		Name       string `json:"name"`
-		Population int    `json:"population"`
+		Type       string `json:"type"`
+		Geometry   string `json:"geometry"`
+		Properties string `json:"properties"`
 	}{
-		Name:       p.OtherName.English,
-		Population: p.Population,
+		Type:       "feature",
+		Geometry:   fmt.Sprintf("{\"type\": %s, \"coordinates\": %v}", "point", p.Location),
+		Properties: fmt.Sprintf("{\"name\": %s, \"population\": %d}", p.OtherName.English, p.Population),
 	})
 }
