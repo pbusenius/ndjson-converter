@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
+	"strings"
 
 	"github.com/pbusenius/ndjson-converter/model"
 	"github.com/schollz/progressbar/v3"
@@ -41,6 +42,7 @@ func readFile(path string) []model.Place {
 }
 
 func main() {
+	var citiyFiles []string
 	var features []model.Feature
 	featureCollection := model.FeatureCollection{
 		Type:     "FeatureCollection",
@@ -52,28 +54,27 @@ func main() {
 		log.Fatal("could not read input folder content")
 	}
 
-	folderBar := progressbar.Default(int64(len(folders)))
+	err = filepath.Walk(inputDirectory, func(path string, f os.FileInfo, err error) error {
+		if !f.IsDir() && strings.Contains(path, ".ndjson") {
+			citiyFiles = append(citiyFiles, path)
+		}
 
-	for _, folder := range folders {
-		folderBar.Add(1)
-		if folder.IsDir() {
-			subfolders, err := os.ReadDir(path.Join(inputDirectory, folder.Name()))
-			if err != nil {
-				log.Fatal("could not read sub folder content")
-			}
+		return nil
+	})
+	if err != nil {
+		log.Fatal("could not walk directory")
+	}
 
-			for _, subfolder := range subfolders {
-				if !subfolder.IsDir() {
-					places := readFile(path.Join(inputDirectory, folder.Name(), subfolder.Name()))
+	cityBar := progressbar.Default(int64(len(folders)))
 
-					for _, place := range places {
-						if place.Population != 0 {
-							feature := model.NewFeature("Point", place)
-							featureCollection.Features = append(featureCollection.Features, feature)
-						}
-					}
+	for _, cityFile := range citiyFiles {
+		cityBar.Add(1)
+		places := readFile(cityFile)
 
-				}
+		for _, place := range places {
+			if place.Population != 0 {
+				feature := model.NewFeature("Point", place)
+				featureCollection.Features = append(featureCollection.Features, feature)
 			}
 		}
 	}
